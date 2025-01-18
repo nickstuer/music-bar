@@ -21,7 +21,7 @@ Volume control widget is tied directly to the application Music's volume and not
 Loads playlists automatically from Apple Music after the application is launched.
 
 ### Song Search
-Easily search for and play a song direclty from the status bar widget.
+Easily search for and play a song directly from the status bar widget.
 
 
 ## 💎 Screenshots
