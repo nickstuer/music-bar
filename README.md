@@ -2,22 +2,9 @@
 
 <img alt="GitHub Issues or Pull Requests" src="https://img.shields.io/github/issues/nickstuer/music-bar">
 
-[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![license](https://img.shields.io/github/license/nickstuer/music-bar.svg)](LICENSE)
 
 Apple Music Bar for MacOS. It also updates Discord 'Listening To' Presence for people who have discord open. 
-
-![application screenshot](https://github.com/nickstuer/music-bar/blob/main/docs/app_screenshot.png)
-![discord screenshot](https://github.com/nickstuer/music-bar/blob/main/docs/discord_screenshot.png)
-
-## Table of Contents
-
-- [Features](#📖Features)
-- [Install](#🛠install)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-
 
 ## 📖 Features
 
@@ -36,6 +23,10 @@ Loads playlists automatically from Apple Music after the application is launched
 ### Song Search
 Easily search for and play a song direclty from the status bar widget.
 
+
+## 💎 Screenshots
+<img src="https://github.com/nickstuer/music-bar/blob/main/docs/app_screenshot.png" width=50% height=50%>
+<img src="https://github.com/nickstuer/music-bar/blob/main/docs/discord_screenshot.png" width=25% height=25%>
 
 ## 🛠 Install
 MacOS only for now.
@@ -67,17 +58,15 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
         
 </details>
 
-####  📌 Dependencies
-Python 3.10 or greater
-rumps
-pypresence: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
-osascript
-darkdetect
+#### 📌 Dependencies
+- Python 3.10 or greater
+- rumps
+- pypresence: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
+- osascript
+- darkdetect
 
 ## 🏆 Contributing
 PRs accepted.
-
-If editing the Readme, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
 
 #### Bug Reports and Feature Requests
 Please use the [issue tracker](https://github.com/nickstuer/music-bar/issues) to report any bugs or request new features.
