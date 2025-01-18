@@ -1,0 +1,23 @@
+## Notes
+icons source: https://www.reshot.com/free-svg-icons/item/play-M5CZEU4XWN/
+
+pypresence requires pip install https://github.com/qwertyquerty/pypresence/archive/master.zip
+and not the package on pip 
+
+## Making Build
+pyinstaller ./musicbar.spec
+
+### Initial Code Attempt at getting Album Art (Unfished)
+artwork = '''
+tell application "Music"
+    tell current track
+        if exists (every artwork) then
+            tell artwork 1
+                get properties
+            end tell
+        else
+            tell me to display alert "No Cover Art found."
+        end if
+    end tell
+end tell
+'''

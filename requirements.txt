@@ -1,0 +1,16 @@
+altgraph==0.17.4
+darkdetect==0.8.0
+macholib==1.16.3
+modulegraph==0.19.6
+osascript==2020.12.3
+packaging==24.2
+pillow==11.1.0
+psutil==6.1.1
+pyinstaller==6.11.1
+pyinstaller-hooks-contrib==2025.0
+pyobjc-core==11.0
+pyobjc-framework-Cocoa==11.0
+pypresence @ https://github.com/qwertyquerty/pypresence/archive/master.zip#sha256=7648c8baead21cdb345a285ec67e849109a3f7ec7cd9053fd8b9bb17141eb4d6
+rumps==0.4.0
+runcmd==2020.12.3
+setuptools==75.8.0
