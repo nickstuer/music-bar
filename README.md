@@ -4,7 +4,7 @@
 
 [![license](https://img.shields.io/github/license/nickstuer/music-bar.svg)](LICENSE)
 
-Apple Music Bar for MacOS. It also updates Discord 'Listening To' Presence for people who have discord open. 
+Apple Music Bar for Mac OS X 10.6+. It also automatically updates your Discord 'Listening To' status so your friends can know what you're listening to with Apple Music. 
 
 ## 📖 Features
 
@@ -30,7 +30,8 @@ Easily search for and play a song direclty from the status bar widget.
 
 ## 🛠 Install
 MacOS only for now.
-Download Link:
+
+Download: https://github.com/nickstuer/music-bar/releases/download/v0.0.1/MusicBar.app.zip
 
 ## 💻 Development
 
