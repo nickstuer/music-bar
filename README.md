@@ -4,39 +4,48 @@
 
 [![license](https://img.shields.io/github/license/nickstuer/music-bar.svg)](LICENSE)
 
-Apple Music Bar for Mac OS X 10.6+. It also automatically updates your Discord 'Listening To' status so your friends can know what you're listening to with Apple Music. 
+Music Bar is a macOS application that allows you to control Apple Music directly from your menu bar. It also automatically updates your Discord 'Listening To' status so your friends can know what you're listening to with Apple Music.
 
 ## 📖 Features
 
-### Basic Music Controls
-Quick access to Play/Pause/Next/Previous/Restart
+### Music Controls
+
+Quickly Play/Pause/Next/Previous/Restart songs without leaving your current application.
 
 ### Discord Status
+
 Updates your discord status to display the current song you're listening to.
 
 ### Application Volume Control
+
 Volume control widget is tied directly to the application Music's volume and not the master volume.
 
 ### Playlists
+
 Loads playlists automatically from Apple Music after the application is launched.
 
 ### Song Search
+
 Easily search for and play a song directly from the status bar widget.
 
-
 ## 💎 Screenshots
-<img src="https://github.com/nickstuer/music-bar/blob/main/docs/app_screenshot.png" width=50% height=50%>
-<img src="https://github.com/nickstuer/music-bar/blob/main/docs/discord_screenshot.png" width=25% height=25%>
+
+<img src="https://github.com/nickstuer/music-bar/blob/main/docs/discord_screenshot.png" width=30% height=30%> &nbsp; &nbsp; <img src="https://github.com/nickstuer/music-bar/blob/main/docs/app_screenshot.png" width=35% height=35%>
 
 ## 🛠 Install
-MacOS only for now.
 
-Download: https://github.com/nickstuer/music-bar/releases/download/v0.0.1/MusicBar.app.zip
+Only macOS 10.6+ is supported for now.
+
+1. **Download:** Download the latest zip file from the [Releases](https://github.com/nickstuer/music-bar/releases) page.
+2. **Extract:** Extract the downloaded .zip file.
+3. **Move:** Drag Music Bar.app to your /Applications folder.
+4. **Launch:** Open Music Bar from the Launchpad.
 
 ## 💻 Development
 
 #### Virtual Environment Setup
-Helpful notes on how to set up a virtual enviroment for developing python applications using VS Code on MacOS.
+
+Helpful notes on how to set up a virtual enviroment for developing python applications using VS Code on macOS.
 
 <details><summary><b>Show Instructions</b></summary>
 
@@ -60,6 +69,8 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 </details>
 
 #### 📌 Dependencies
+
+- macOS 10.6 or greater
 - Python 3.10 or greater
 - rumps
 - pypresence: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
@@ -73,9 +84,11 @@ pyinstaller ./musicbar.spec
 ```
 
 ## 🏆 Contributing
+
 PRs accepted.
 
 #### Bug Reports and Feature Requests
+
 Please use the [issue tracker](https://github.com/nickstuer/music-bar/issues) to report any bugs or request new features.
 
 #### Contributors
