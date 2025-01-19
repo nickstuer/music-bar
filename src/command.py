@@ -14,8 +14,8 @@ class Command(Enum):
     Get_Volume = "get sound volume"
     Set_Volume = "set sound volume to {}"
     Play_Song_From_ID = "play track id {}"
-    Play_Playlist_From_Name = "play playlist \"{}\""
-    Search_Playlist_Name_For_Song = "search playlist {} for \"{}\""
+    Play_Playlist_From_Name = 'play playlist "{}"'
+    Search_Playlist_Name_For_Song = 'search playlist {} for "{}"'
     Get_Playlist_Count = "count playlist"
     Get_Playlist_Name_From_Index = "get name of playlist {}"
     Get_Current_Song_Title = "get name of current track"
@@ -30,15 +30,17 @@ class Command(Enum):
 
 
 def run_script(command: Command, *args) -> str:
-    command = f"tell application \"Music\" to {command.value.format(*args)}"
+    command = f'tell application "Music" to {command.value.format(*args)}'
     result = osascript(command)[1]
     return result
+
 
 def run_script_int(command: Command, *args) -> str:
     result = run_script(command, *args)
     return int(result)
 
+
 def run_script_float(command: Command, *args) -> str:
     result = run_script(command, *args)
-    result = result.replace(',', '.')
+    result = result.replace(",", ".")
     return float(result)

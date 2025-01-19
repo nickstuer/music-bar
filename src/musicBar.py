@@ -1,10 +1,12 @@
-import time
-import rumps
 import re
-from osascript import osascript
-from pypresence import Presence, ActivityType
-from command import Command, run_script, run_script_int, run_script_float
+import time
+
 import darkdetect
+import rumps
+from osascript import osascript
+from pypresence import ActivityType, Presence
+
+from command import Command, run_script, run_script_float, run_script_int
 
 VERSION = "0.0.1"
 DISCORD_APP_ID = "1326038870323892244"
@@ -129,7 +131,7 @@ class MusicBar(rumps.App):
     def searchAndPlay(self, _):
         trackID = None
         window = rumps.Window(
-            f"Searches your playlists for a song title and then plays it.",
+            "Searches your playlists for a song title and then plays it.",
             "Search Music",
             ok="Search",
             cancel="Cancel",
@@ -143,7 +145,6 @@ class MusicBar(rumps.App):
 
         playlist_count = run_script_int(Command.Get_Playlist_Count)
         for playlist in range(1, playlist_count):
-
             result = run_script(
                 Command.Search_Playlist_Name_For_Song, playlist, response.text
             )
@@ -240,6 +241,6 @@ class MusicBar(rumps.App):
         except Exception as e:
             print(e)
 
-        #print(f"Album: {album}")
-        #print(f"Artist: {artist}")
-        #print(f"Song: {song}")
+        # print(f"Album: {album}")
+        # print(f"Artist: {artist}")
+        # print(f"Song: {song}")
