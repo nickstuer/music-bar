@@ -7,7 +7,7 @@
 ## Code Attempts
 
 ### Album Art Script
-'''bash
+```bash
 tell application "Music"
     tell current track
         if exists (every artwork) then
@@ -19,4 +19,4 @@ tell application "Music"
         end if
     end tell
 end tell
-'''
+```
