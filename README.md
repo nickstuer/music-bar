@@ -68,9 +68,9 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 - pyinstaller
 
 #### 🔨 Build
-'''bash
+```bash
 pyinstaller ./musicbar.spec
-'''
+```
 
 ## 🏆 Contributing
 PRs accepted.
