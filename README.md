@@ -65,6 +65,12 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 - pypresence: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
 - osascript
 - darkdetect
+- pyinstaller
+
+#### 🔨 Build
+'''bash
+pyinstaller ./musicbar.spec
+'''
 
 ## 🏆 Contributing
 PRs accepted.
