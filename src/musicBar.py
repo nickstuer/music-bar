@@ -3,15 +3,16 @@ import time
 
 import darkdetect
 import rumps
-from osascript import osascript
 from pypresence import ActivityType, Presence
 
 from command import Command, run_script, run_script_float, run_script_int
 
-VERSION = "0.0.2.dev"
+VERSION = "0.0.2"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
+
+ABOUT_TEXT = f"Author: Nick Stuer\nVersion: {VERSION}\n\n\nIcons from ReShot.com"
 
 
 class MusicBar(rumps.App):
@@ -76,6 +77,7 @@ class MusicBar(rumps.App):
         self.RPC = Presence(DISCORD_APP_ID, pipe=0)
         self.RPC.connect()
         self.started = False
+        self.last_discord_update_was_clear = False
 
         playlist_count = run_script_int(Command.Get_Playlist_Count)
         self.menu_playlists = [
@@ -162,21 +164,29 @@ class MusicBar(rumps.App):
     @rumps.clicked("About")
     def about(self, _):
         rumps.alert(
-            "NQS Music Bar",
-            f"Author: Nick Stuer\nVersion: {VERSION}\n\n\nIcons from ReShot.com",
+            "Music Bar",
+            ABOUT_TEXT,
             icon_path="assets/music.svg",
         )
 
+    def load_playlists(self):
+        for n in range(0, len(self.menu_playlists)):
+            self.menu_playlists[n].title = run_script(
+                Command.Get_Playlist_Name_From_Index, n + 1
+            )
+
     @rumps.timer(1)
     def update(self, _):
-        if not self.started:
-            self.started = True
+        if not run_script(Command.Is_Open):
+            # Don't interact with Music app if it's not open
+            if not self.last_discord_update_was_clear:
+                self.clear_discord_status()
+            return
 
+        if not self.started:
             # Load Playlists after the app is started because it might take some time and block the icon from showing immediately
-            for n in range(0, len(self.menu_playlists)):
-                self.menu_playlists[n].title = run_script(
-                    Command.Get_Playlist_Name_From_Index, n + 1
-                )
+            self.load_playlists()
+            self.started = True
 
         self.playing = (
             True if run_script(Command.Get_Player_State) == "playing" else False
@@ -193,9 +203,7 @@ class MusicBar(rumps.App):
 
             pos = run_script(Command.Get_Player_Position)
             pos = time.strftime("%M:%S", time.gmtime(float(pos)))
-            title = osascript(
-                'tell application "Music" to get name of current track as string'
-            )[1]
+            title = run_script(Command.Get_Current_Song_Title)
             now_playing = f"{title} • {pos}"
             # self.title = now_playing
 
@@ -214,13 +222,19 @@ class MusicBar(rumps.App):
             if not self.menu_pause.hidden:
                 self.menu_pause.hide()
 
-            self.RPC.clear()
+            if not self.last_discord_update_was_clear:
+                self.clear_discord_status()
             self.last_song = None
             self.menu_current.title = "Not Playing"
 
+    def clear_discord_status(self):
+        self.last_discord_update_was_clear = True
+        self.RPC.clear()
+
     def update_discord_status(self):
+        self.last_discord_update_was_clear = False
         try:
-            album = run_script(Command.Get_Current_Song_Album)
+            # album = run_script(Command.Get_Current_Song_Album)
             artist = run_script(Command.Get_Current_Song_Artist)
             song = run_script(Command.Get_Current_Song_Title)
             position = run_script_float(Command.Get_Player_Position)

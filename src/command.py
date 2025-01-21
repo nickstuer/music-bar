@@ -4,6 +4,7 @@ from osascript import osascript
 
 
 class Command(Enum):
+    Is_Open = 'if application "Music" is running then return true'
     Play = "play"
     Pause = "pause"
     Next = "next track"
@@ -25,9 +26,6 @@ class Command(Enum):
     Get_Current_Song_Start = "get start of current track"
     Get_Current_Song_Finish = "get finish of current track"
 
-    def __int__(self):
-        return int(self.value)
-
 
 def run_script(command: Command, *args) -> str:
     command = f'tell application "Music" to {command.value.format(*args)}'
@@ -35,12 +33,22 @@ def run_script(command: Command, *args) -> str:
     return result
 
 
-def run_script_int(command: Command, *args) -> str:
+def run_raw_script(command: str) -> str:
+    result = osascript(command)[1]
+    return result
+
+
+def run_raw_script_bool(command: str) -> bool:
+    result = run_raw_script(command)
+    return bool(result)
+
+
+def run_script_int(command: Command, *args) -> int:
     result = run_script(command, *args)
     return int(result)
 
 
-def run_script_float(command: Command, *args) -> str:
+def run_script_float(command: Command, *args) -> float:
     result = run_script(command, *args)
     result = result.replace(",", ".")
     return float(result)
