@@ -30,7 +30,7 @@ Easily search for and play a song directly from the status bar widget.
 
 ## 💎 Screenshots
 
-<img src="https://github.com/nickstuer/music-bar/blob/main/docs/discord_screenshot.png" width=30% height=30%> &nbsp; &nbsp; <img src="https://github.com/nickstuer/music-bar/blob/main/docs/app_screenshot.png" width=35% height=35%>
+<img src="https://github.com/nickstuer/music-bar/blob/main/docs/discord_screenshot.png" > &nbsp; &nbsp; <img src="https://github.com/nickstuer/music-bar/blob/main/docs/app_screenshot.png" >
 
 ## 🛠 Install
 
