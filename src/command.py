@@ -1,6 +1,9 @@
 from enum import Enum
+from typing import Callable, TypeVar
 
 from osascript import osascript
+
+T = TypeVar("T")
 
 
 class Command(Enum):
@@ -27,28 +30,14 @@ class Command(Enum):
     Get_Current_Song_Finish = "get finish of current track"
 
 
-def run_script(command: Command, *args) -> str:
+def run_script(command: Command, *args, converter: Callable[[str], T] = str) -> T:
     command = f'tell application "Music" to {command.value.format(*args)}'
     result = osascript(command)[1]
-    return result
+    if converter is float:
+        result = result.replace(",", ".")
+    return converter(result)
 
 
 def run_raw_script(command: str) -> str:
     result = osascript(command)[1]
     return result
-
-
-def run_raw_script_bool(command: str) -> bool:
-    result = run_raw_script(command)
-    return bool(result)
-
-
-def run_script_int(command: Command, *args) -> int:
-    result = run_script(command, *args)
-    return int(result)
-
-
-def run_script_float(command: Command, *args) -> float:
-    result = run_script(command, *args)
-    result = result.replace(",", ".")
-    return float(result)

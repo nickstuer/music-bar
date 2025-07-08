@@ -5,9 +5,9 @@ import darkdetect
 import rumps
 from pypresence import ActivityType, Presence
 
-from command import Command, run_script, run_script_float, run_script_int
+from command import Command, run_script
 
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
@@ -68,7 +68,7 @@ class MusicBar(rumps.App):
             template=darkdetect.isDark(),
         )
 
-        volume = run_script_int(Command.Get_Volume)
+        volume = run_script(Command.Get_Volume, converter=int)
         self.menu_volume = rumps.SliderMenuItem(
             dimensions=(150, 25), value=volume, callback=self.set_volume
         )
@@ -79,7 +79,7 @@ class MusicBar(rumps.App):
         self.started = False
         self.last_discord_update_was_clear = False
 
-        playlist_count = run_script_int(Command.Get_Playlist_Count)
+        playlist_count = run_script(Command.Get_Playlist_Count, converter=int)
         self.menu_playlists = [
             rumps.MenuItem(n, callback=self.start_playlist)
             for n in range(1, playlist_count)
@@ -145,7 +145,7 @@ class MusicBar(rumps.App):
         if not response.clicked:
             return
 
-        playlist_count = run_script_int(Command.Get_Playlist_Count)
+        playlist_count = run_script(Command.Get_Playlist_Count, converter=int)
         for playlist in range(1, playlist_count):
             result = run_script(
                 Command.Search_Playlist_Name_For_Song, playlist, response.text
@@ -193,7 +193,7 @@ class MusicBar(rumps.App):
         )
 
         if self.playing:
-            volume = run_script_int(Command.Get_Volume)
+            volume = run_script(Command.Get_Volume, converter=int)
             self.menu_volume.value = volume
 
             current_song = run_script(Command.Get_Current_Song_Title)
@@ -237,10 +237,10 @@ class MusicBar(rumps.App):
             # album = run_script(Command.Get_Current_Song_Album)
             artist = run_script(Command.Get_Current_Song_Artist)
             song = run_script(Command.Get_Current_Song_Title)
-            position = run_script_float(Command.Get_Player_Position)
+            position = run_script(Command.Get_Player_Position, converter=float)
 
-            finish = run_script_float(Command.Get_Current_Song_Finish) - position
-            start = run_script_float(Command.Get_Current_Song_Start) - position
+            finish = run_script(Command.Get_Current_Song_Finish, converter=float) - position
+            start = run_script(Command.Get_Current_Song_Start, converter=float) - position
             duration = finish - start
 
             self.RPC.update(
