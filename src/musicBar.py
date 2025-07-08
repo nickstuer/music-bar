@@ -7,7 +7,7 @@ from pypresence import ActivityType, Presence
 
 from command import Command, run_script
 
-VERSION = "0.0.4"
+VERSION = "0.0.5"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
@@ -204,10 +204,9 @@ class MusicBar(rumps.App):
             pos = run_script(Command.Get_Player_Position)
             pos = time.strftime("%M:%S", time.gmtime(float(pos)))
             title = run_script(Command.Get_Current_Song_Title)
-            now_playing = f"{title} • {pos}"
-            # self.title = now_playing
 
-            self.menu_current.title = now_playing
+            title_short = title if len(title) <= 40 else title[: 40 - 1] + "…"
+            self.menu_current.title = f"{title_short} • {pos}"
 
             if self.menu_pause.hidden:
                 self.menu_pause.show()
@@ -239,8 +238,12 @@ class MusicBar(rumps.App):
             song = run_script(Command.Get_Current_Song_Title)
             position = run_script(Command.Get_Player_Position, converter=float)
 
-            finish = run_script(Command.Get_Current_Song_Finish, converter=float) - position
-            start = run_script(Command.Get_Current_Song_Start, converter=float) - position
+            finish = (
+                run_script(Command.Get_Current_Song_Finish, converter=float) - position
+            )
+            start = (
+                run_script(Command.Get_Current_Song_Start, converter=float) - position
+            )
             duration = finish - start
 
             self.RPC.update(
