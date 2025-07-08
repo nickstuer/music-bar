@@ -79,8 +79,9 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 - pyinstaller
 
 #### 🔨 Build
+Ensure "create-dmg" is installed.  (brew install create-dmg)
 ```bash
-pyinstaller ./musicbar.spec
+bash build.sh
 ```
 
 ## 🏆 Contributing

@@ -7,7 +7,7 @@ from pypresence import ActivityType, Presence
 
 from command import Command, run_script, run_script_float, run_script_int
 
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
