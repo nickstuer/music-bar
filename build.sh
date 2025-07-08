@@ -1,3 +1,8 @@
+#!/bin/bash
+
+rm -vrf dist/ | echo "$(wc -l) files deleted"
+mkdir -p dist/
+
 pyinstaller ./musicbar.spec
 mkdir -p dist/dmg
 cp -r "dist/Music Bar.app" dist/dmg
