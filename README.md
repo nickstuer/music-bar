@@ -1,6 +1,8 @@
 # Music Bar
+![macOS only](https://img.shields.io/badge/only-macOS-blue?logo=apple) ![Python](https://img.shields.io/badge/python-3.10+-blue?logo=python) ![Downloads](https://img.shields.io/github/downloads/nickstuer/music-bar/total)
 
-<img alt="GitHub Issues or Pull Requests" src="https://img.shields.io/github/issues/nickstuer/music-bar">
+![GitHub Issues](https://img.shields.io/github/issues/nickstuer/music-bar) 
+
 
 [![license](https://img.shields.io/github/license/nickstuer/music-bar.svg)](LICENSE)
 
