@@ -1,13 +1,28 @@
+import logging
 import re
 import time
-
+from pathlib import Path
+import os
 import darkdetect
 import rumps
 from pypresence import ActivityType, Presence
 
 from command import Command, run_script
 
-VERSION = "0.0.5"
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+log_directory = Path.home() / '.music-bar'
+os.makedirs(log_directory, exist_ok=True)
+
+handler = logging.FileHandler(log_directory / 'app.log')
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+VERSION = "0.0.6"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
@@ -17,6 +32,7 @@ ABOUT_TEXT = f"Author: Nick Stuer\nVersion: {VERSION}\n\n\nIcons from ReShot.com
 
 class MusicBar(rumps.App):
     def __init__(self, *args, **kwds):
+        logger.info(f"Initializing MusicBar version {VERSION}")
         self.menu_current = rumps.MenuItem("Not Playing")
         self.menu_play = rumps.MenuItem(
             "Play",
@@ -175,6 +191,8 @@ class MusicBar(rumps.App):
                 Command.Get_Playlist_Name_From_Index, n + 1
             )
 
+        logger.info("Loaded Playlists:" + str(len(self.menu_playlists)))
+
     @rumps.timer(1)
     def update(self, _):
         if not run_script(Command.Is_Open):
@@ -199,6 +217,7 @@ class MusicBar(rumps.App):
             current_song = run_script(Command.Get_Current_Song_Title)
             if self.last_song != current_song:
                 self.last_song = current_song
+                logger.info(f"Current song changed: {current_song}")
                 self.update_discord_status()
 
             pos = run_script(Command.Get_Player_Position)
@@ -227,9 +246,10 @@ class MusicBar(rumps.App):
             self.menu_current.title = "Not Playing"
 
     def clear_discord_status(self):
+        logger.info("Clearing Discord status")
         self.last_discord_update_was_clear = True
         self.RPC.clear()
-
+        
     def update_discord_status(self):
         self.last_discord_update_was_clear = False
         try:
@@ -255,7 +275,9 @@ class MusicBar(rumps.App):
                 end=time.time() + int(duration) - int(position),
                 small_text="Listening to Apple Music",
             )
+            logger.info(f"Updated Discord status: {song} by {artist}")
         except Exception as e:
+            logger.exception("Failed to update Discord status", e)
             print(e)
 
         # print(f"Album: {album}")
