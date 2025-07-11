@@ -22,7 +22,7 @@ formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-VERSION = "0.0.8"
+VERSION = "0.0.9"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music_white.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"

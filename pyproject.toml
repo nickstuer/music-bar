@@ -1,6 +1,6 @@
 [project]
 name = "music-bar"
-version = "0.0.8"
+version = "0.0.9"
 description = "Apple Music Status Bar for MacOS. Easily control Music from the Status Bar and automatically updates Discord status to show your friends what you're listening to."
 readme = "README.md"
 requires-python = ">=3.13"
