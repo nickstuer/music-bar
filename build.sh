@@ -3,12 +3,15 @@
 rm -vrf dist/ | echo "$(wc -l) files deleted"
 mkdir -p dist/
 
+rm -vrf build/ | echo "$(wc -l) files deleted"
+mkdir -p build/
+
 pyinstaller ./musicbar.spec
 mkdir -p dist/dmg
 cp -r "dist/MusicBar.app" dist/dmg
 
 create-dmg \
-  --volname "Music Bar" \
+  --volname "MusicBar" \
   --window-size 500 300 \
   --window-pos 200 100 \
   --icon-size 100 \
