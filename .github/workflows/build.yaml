@@ -1,0 +1,61 @@
+name: Build macOS .dmg with uv and Nuitka Action
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-macos-dmg:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Setup Python environment and install dependencies
+        run: |
+          uv venv
+          source .venv/bin/activate
+          uv install
+
+      - name: Build Executable
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: src/run.py
+          mode: app
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }} Build
+          path: |
+            build/*.exe
+            build/*.bin
+            build/*.app/**/*
+            build/*.dist/**/*
+          include-hidden-files: true
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create .dmg
+        run: |
+          create-dmg \
+            --volname "MusicBar Installer" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "MusicBar.app" 200 190 \
+            --hide-extension "MusicBar.app" \
+            --app-drop-link 600 185 \
+            "build/dist/MusicBar.dmg" \
+            "build/dist/"
+
+      - name: Upload .dmg artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: musicbar-dmg
+          path: dist/MusicBar.dmg
