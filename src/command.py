@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from osascript import osascript
 
@@ -30,7 +31,7 @@ class Command(Enum):
     Get_Current_Song_Finish = "get finish of current track"
 
 
-def run_script(command: Command, *args, converter: Callable[[str], T] = str) -> T:
+def run_script[T](command: Command, *args, converter: Callable[[str], T] = str) -> T:  # noqa: ANN002
     command = f'tell application "Music" to {command.value.format(*args)}'
     result = osascript(command)[1]
     if converter is float:
@@ -39,5 +40,4 @@ def run_script(command: Command, *args, converter: Callable[[str], T] = str) -> 
 
 
 def run_raw_script(command: str) -> str:
-    result = osascript(command)[1]
-    return result
+    return osascript(command)[1]

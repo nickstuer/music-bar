@@ -2,7 +2,7 @@ import logging
 import re
 import time
 from pathlib import Path
-import os
+
 import darkdetect
 import rumps
 from pypresence import ActivityType, Presence
@@ -10,12 +10,11 @@ from pypresence.exceptions import PipeClosed
 
 from command import Command, run_script
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 log_directory = Path.home() / ".music-bar"
-os.makedirs(log_directory, exist_ok=True)
+Path.mkdir(log_directory, exist_ok=True)
 
 handler = logging.FileHandler(log_directory / "app.log")
 handler.setLevel(logging.DEBUG)
@@ -32,7 +31,7 @@ ABOUT_TEXT = f"Author: Nick Stuer\nVersion: {VERSION}\n\n\nIcons from ReShot.com
 
 
 class MusicBar(rumps.App):
-    def __init__(self, *args, **kwds):
+    def __init__(self, *args, **kwds):  # noqa: ANN002, ANN003, ARG002
         logger.info(f"Initializing MusicBar version {VERSION}")
         self.menu_current = rumps.MenuItem("Not Playing")
         self.menu_play = rumps.MenuItem(
@@ -74,7 +73,7 @@ class MusicBar(rumps.App):
             "Search",
             icon="assets/search.svg",
             dimensions=(18, 18),
-            callback=self.searchAndPlay,
+            callback=self.search_and_play,
             template=darkdetect.isDark(),
         )
         self.menu_playlist = rumps.MenuItem(
@@ -86,27 +85,22 @@ class MusicBar(rumps.App):
         )
 
         volume = run_script(Command.Get_Volume, converter=int)
-        self.menu_volume = rumps.SliderMenuItem(
-            dimensions=(150, 25), value=volume, callback=self.set_volume
-        )
+        self.menu_volume = rumps.SliderMenuItem(dimensions=(150, 25), value=volume, callback=self.set_volume)
         self.last_song = None
         self.playing = False
         try:
             self.RPC = Presence(DISCORD_APP_ID, pipe=0)
             self.RPC.connect()
-        except Exception as e:
-            logger.error("Failed to connect to Discord RPC - Discord might not be running")
+        except Exception:
+            logger.exception("Failed to connect to Discord RPC - Discord might not be running")
 
         self.started = False
         self.last_discord_update_was_clear = False
 
         playlist_count = run_script(Command.Get_Playlist_Count, converter=int)
-        self.menu_playlists = [
-            rumps.MenuItem(n, callback=self.start_playlist)
-            for n in range(1, playlist_count)
-        ]
+        self.menu_playlists = [rumps.MenuItem(n, callback=self.start_playlist) for n in range(1, playlist_count)]
 
-        super(MusicBar, self).__init__(
+        super().__init__(
             name="Music Bar",
             menu=[
                 self.menu_current,
@@ -129,30 +123,30 @@ class MusicBar(rumps.App):
             icon=APPLICATION_ICON,
         )
 
-    def set_volume(self, sender):
+    def set_volume(self, sender) -> None:  # noqa: ANN001
         run_script(Command.Set_Volume, sender.value)
 
-    def play(self, _):
+    def play(self, _) -> None:  # noqa: ANN001
         run_script(Command.Play)
 
-    def pause(self, _):
+    def pause(self, _) -> None:  # noqa: ANN001
         run_script(Command.Pause)
 
-    def next(self, _):
+    def next(self, _) -> None:  # noqa: ANN001
         run_script(Command.Next)
 
-    def previous(self, _):
+    def previous(self, _) -> None:  # noqa: ANN001
         run_script(Command.Previous)
 
-    def restart(self, _):
+    def restart(self, _) -> None:  # noqa: ANN001
         self.last_song = None
         run_script(Command.Restart)
 
-    def start_playlist(self, sender):
+    def start_playlist(self, sender) -> None:  # noqa: ANN001
         run_script(Command.Play_Playlist_From_Name, sender.title.strip())
 
-    def searchAndPlay(self, _):
-        trackID = None
+    def search_and_play(self, _) -> None:  # noqa: ANN001
+        track_id = None
         window = rumps.Window(
             "Searches your playlists for a song title and then plays it.",
             "Search Music",
@@ -168,38 +162,34 @@ class MusicBar(rumps.App):
 
         playlist_count = run_script(Command.Get_Playlist_Count, converter=int)
         for playlist in range(1, playlist_count):
-            result = run_script(
-                Command.Search_Playlist_Name_For_Song, playlist, response.text
-            )
+            result = run_script(Command.Search_Playlist_Name_For_Song, playlist, response.text)
             results = re.findall(r"\d+", result)
 
             if len(results) > 0:
-                trackID = results[0]
+                track_id = results[0]
                 break
 
-        if not trackID:
+        if not track_id:
             rumps.alert("No Results", f"No results found for {response.text}")
         else:
-            run_script(Command.Play_Song_From_ID, trackID)
+            run_script(Command.Play_Song_From_ID, track_id)
 
     @rumps.clicked("About")
-    def about(self, _):
+    def about(self, _) -> None:  # noqa: ANN001
         rumps.alert(
             "Music Bar",
             ABOUT_TEXT,
             icon_path="assets/music.svg",
         )
 
-    def load_playlists(self):
-        for n in range(0, len(self.menu_playlists)):
-            self.menu_playlists[n].title = run_script(
-                Command.Get_Playlist_Name_From_Index, n + 1
-            )
+    def load_playlists(self) -> None:
+        for n in range(len(self.menu_playlists)):
+            self.menu_playlists[n].title = run_script(Command.Get_Playlist_Name_From_Index, n + 1)
 
-        logger.info("Loaded Playlists:" + str(len(self.menu_playlists)))
+        logger.info("Loaded Playlists:" + str(len(self.menu_playlists)))  # noqa: G003
 
     @rumps.timer(1)
-    def update(self, _):
+    def update(self, _) -> None:  # noqa: ANN001, C901
         if not run_script(Command.Is_Open):
             # Don't interact with Music app if it's not open
             if not self.last_discord_update_was_clear:
@@ -207,13 +197,11 @@ class MusicBar(rumps.App):
             return
 
         if not self.started:
-            # Load Playlists after the app is started because it might take some time and block the icon from showing immediately
+            # Load Playlists after the app is started because it might take some time and block the icon from showing
             self.load_playlists()
             self.started = True
 
-        self.playing = (
-            True if run_script(Command.Get_Player_State) == "playing" else False
-        )
+        self.playing = run_script(Command.Get_Player_State) == "playing"
 
         if self.playing:
             volume = run_script(Command.Get_Volume, converter=int)
@@ -229,7 +217,7 @@ class MusicBar(rumps.App):
             pos = time.strftime("%M:%S", time.gmtime(float(pos)))
             title = run_script(Command.Get_Current_Song_Title)
 
-            title_short = title if len(title) <= 40 else title[: 40 - 1] + "…"
+            title_short = title if len(title) <= 40 else title[: 40 - 1] + "…"  # noqa: PLR2004
             self.menu_current.title = f"{title_short} • {pos}"
 
             if self.menu_pause.hidden:
@@ -250,37 +238,28 @@ class MusicBar(rumps.App):
             self.last_song = None
             self.menu_current.title = "Not Playing"
 
-    def clear_discord_status(self):
+    def clear_discord_status(self) -> None:
         logger.info("Clearing Discord status")
         self.last_discord_update_was_clear = True
         self.RPC.clear()
 
-    def update_discord_status(self):
+    def update_discord_status(self) -> None:
         self.last_discord_update_was_clear = False
 
         attempts = 0
-        while attempts < 3:
+        while attempts < 3:  # noqa: PLR2004
             attempts += 1
             logger.info(f"Attempting to update Discord status, attempt {attempts} of 3")
             try:
-                # album = run_script(Command.Get_Current_Song_Album)
                 artist = run_script(Command.Get_Current_Song_Artist)
                 song = run_script(Command.Get_Current_Song_Title)
                 position = run_script(Command.Get_Player_Position, converter=float)
 
-                finish = (
-                    run_script(Command.Get_Current_Song_Finish, converter=float)
-                    - position
-                )
-                start = (
-                    run_script(Command.Get_Current_Song_Start, converter=float)
-                    - position
-                )
+                finish = run_script(Command.Get_Current_Song_Finish, converter=float) - position
+                start = run_script(Command.Get_Current_Song_Start, converter=float) - position
                 duration = finish - start
 
-                logger.info(
-                    f"Updating Discord status: {song} by {artist}, position: {position}, duration: {duration}"
-                )
+                logger.info(f"Updating Discord status: {song} by {artist}, position: {position}, duration: {duration}")
 
                 self.RPC.update(
                     activity_type=ActivityType.LISTENING,
@@ -292,19 +271,15 @@ class MusicBar(rumps.App):
                     small_text="Listening to Apple Music",
                 )
                 logger.info("Updated Discord status!")
-                return
+                return  # noqa: TRY300
             except PipeClosed:
                 logger.info("Broken pipe error, reconnecting to Discord RPC")
                 self.RPC.connect()
             except ConnectionRefusedError:
                 logger.info("Connection refused error - discord is not running")
-            except AssertionError as e:
+            except AssertionError:
                 logger.info("Discord wasn't open when Music Bar launched, connecting to Discord RPC")
                 self.RPC = Presence(DISCORD_APP_ID, pipe=0)
                 self.RPC.connect()
             except Exception as e:
-                logger.exception(f"Failed to update Discord status {e}")
-
-        # print(f"Album: {album}")
-        # print(f"Artist: {artist}")
-        # print(f"Song: {song}")
+                logger.exception(f"Failed to update Discord status {e}")  # noqa: TRY401
