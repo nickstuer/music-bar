@@ -6,6 +6,7 @@ import os
 import darkdetect
 import rumps
 from pypresence import ActivityType, Presence
+from pypresence.exceptions import PipeClosed
 
 from command import Command, run_script
 
@@ -13,16 +14,16 @@ from command import Command, run_script
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-log_directory = Path.home() / '.music-bar'
+log_directory = Path.home() / ".music-bar"
 os.makedirs(log_directory, exist_ok=True)
 
-handler = logging.FileHandler(log_directory / 'app.log')
+handler = logging.FileHandler(log_directory / "app.log")
 handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-VERSION = "0.0.6"
+VERSION = "0.0.7"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
@@ -90,8 +91,12 @@ class MusicBar(rumps.App):
         )
         self.last_song = None
         self.playing = False
-        self.RPC = Presence(DISCORD_APP_ID, pipe=0)
-        self.RPC.connect()
+        try:
+            self.RPC = Presence(DISCORD_APP_ID, pipe=0)
+            self.RPC.connect()
+        except Exception as e:
+            logger.error("Failed to connect to Discord RPC - Discord might not be running")
+
         self.started = False
         self.last_discord_update_was_clear = False
 
@@ -249,36 +254,56 @@ class MusicBar(rumps.App):
         logger.info("Clearing Discord status")
         self.last_discord_update_was_clear = True
         self.RPC.clear()
-        
+
     def update_discord_status(self):
         self.last_discord_update_was_clear = False
-        try:
-            # album = run_script(Command.Get_Current_Song_Album)
-            artist = run_script(Command.Get_Current_Song_Artist)
-            song = run_script(Command.Get_Current_Song_Title)
-            position = run_script(Command.Get_Player_Position, converter=float)
 
-            finish = (
-                run_script(Command.Get_Current_Song_Finish, converter=float) - position
-            )
-            start = (
-                run_script(Command.Get_Current_Song_Start, converter=float) - position
-            )
-            duration = finish - start
+        attempts = 0
+        while attempts < 3:
+            attempts += 1
+            logger.info(f"Attempting to update Discord status, attempt {attempts} of 3")
+            try:
+                # album = run_script(Command.Get_Current_Song_Album)
+                artist = run_script(Command.Get_Current_Song_Artist)
+                song = run_script(Command.Get_Current_Song_Title)
+                position = run_script(Command.Get_Player_Position, converter=float)
 
-            self.RPC.update(
-                activity_type=ActivityType.LISTENING,
-                details=f"{song}",
-                state=f"{artist}",
-                large_image=DISCORD_ICON,
-                start=time.time() - int(position),
-                end=time.time() + int(duration) - int(position),
-                small_text="Listening to Apple Music",
-            )
-            logger.info(f"Updated Discord status: {song} by {artist}")
-        except Exception as e:
-            logger.exception("Failed to update Discord status", e)
-            print(e)
+                finish = (
+                    run_script(Command.Get_Current_Song_Finish, converter=float)
+                    - position
+                )
+                start = (
+                    run_script(Command.Get_Current_Song_Start, converter=float)
+                    - position
+                )
+                duration = finish - start
+
+                logger.info(
+                    f"Updating Discord status: {song} by {artist}, position: {position}, duration: {duration}"
+                )
+
+                self.RPC.update(
+                    activity_type=ActivityType.LISTENING,
+                    details=f"{song}",
+                    state=f"{artist}",
+                    large_image=DISCORD_ICON,
+                    start=time.time() - int(position),
+                    end=time.time() + int(duration) - int(position),
+                    small_text="Listening to Apple Music",
+                )
+                logger.info("Updated Discord status!")
+                return
+            except PipeClosed:
+                logger.info("Broken pipe error, reconnecting to Discord RPC")
+                self.RPC.connect()
+            except ConnectionRefusedError:
+                logger.info("Connection refused error - discord is not running")
+            except AssertionError as e:
+                logger.info("Discord wasn't open when Music Bar launched, connecting to Discord RPC")
+                self.RPC = Presence(DISCORD_APP_ID, pipe=0)
+                self.RPC.connect()
+            except Exception as e:
+                logger.exception(f"Failed to update Discord status {e}")
 
         # print(f"Album: {album}")
         # print(f"Artist: {artist}")
