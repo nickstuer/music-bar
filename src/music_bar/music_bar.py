@@ -8,7 +8,7 @@ import rumps
 from pypresence import ActivityType, Presence
 from pypresence.exceptions import PipeClosed
 
-from command import Command, run_script
+from .command import Command, run_script
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
