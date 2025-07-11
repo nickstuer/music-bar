@@ -85,6 +85,7 @@ pypresence = { git = "https://github.com/qwertyquerty/pypresence", rev = "4e882c
 
 [dependency-groups]
 dev = [
+    "pillow>=11.3.0",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
 ]
