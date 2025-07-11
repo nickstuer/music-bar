@@ -52,20 +52,9 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 
 1. Open "Folder" in VS Code
 
-2. Create Virtual Environment
-    1. Press CMD + SHIFT + P and Select 'Python: Create Virtual Environment'
-    2. Follow the prompts
-
-3. Change Default Terminal in VS Code
-    1. Press CMD + SHIFT + P and Select 'Terminal: Select Default Profile'
-    2. Choose 'Command Prompt'
-
-4. Test the Virtual Environment
-    1. Press CTRL + SHIFT + ~ to open a terminal.
-    2. Ensure the prompt begins with '(.venv)'
-
-5. Install the pip dependenies
-    1. Type: pip install -r requirements.txt
+2. Open 'Terminal'
+    1. Type: uv sync / uv venv
+    2. Activte the venv and set vs code python intrepreter to the venv python version
         
 </details>
 
@@ -74,7 +63,7 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 - macOS 10.6 or greater
 - Python 3.10 or greater
 - rumps
-- pypresence: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
+- pypresence 4.4-ish: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
 - osascript
 - darkdetect
 - pyinstaller
