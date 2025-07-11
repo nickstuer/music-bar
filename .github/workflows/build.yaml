@@ -3,6 +3,7 @@ name: Build macOS .dmg with uv and Nuitka Action
 on:
   release:
     types: [published]
+    workflow_dispatch: 
 
 jobs:
   build-macos-dmg:
@@ -18,7 +19,7 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv install
+          uv sync
 
       - name: Build Executable
         uses: Nuitka/Nuitka-Action@main
