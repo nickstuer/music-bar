@@ -38,9 +38,8 @@ Easily search for and play a song directly from the status bar widget.
 
 Only macOS 10.6+ is supported for now.
 
-1. **Download:** Download the latest zip file from the [Releases](https://github.com/nickstuer/music-bar/releases) page.
-2. **Extract:** Extract the downloaded .zip file.
-3. **Move:** Drag Music Bar.app to your /Applications folder.
+1. **Download:** Download the latest .dmg file from the [Releases](https://github.com/nickstuer/music-bar/releases) page.
+3. **Move:** Launch the .dmg file and drag Music Bar.app to your /Applications folder.
 4. **Launch:** Open Music Bar from the Launchpad.
 
 ## 💻 Development
