@@ -7,15 +7,15 @@ rm -vrf build/ | echo "$(wc -l) files deleted"
 mkdir -p build/
 
 pyinstaller ./musicbar.spec
-mkdir -p dist/dmg
-cp -r "dist/MusicBar.app" dist/dmg
+
+codesign --force -s - "dist/Music Bar.app"
 
 create-dmg \
-  --volname "MusicBar" \
+  --volname "Music Bar" \
   --window-size 500 300 \
   --window-pos 200 100 \
   --icon-size 100 \
-  --icon "MusicBar.app" 100 120 \
+  --icon "Music Bar.app" 100 120 \
   --app-drop-link 380 120 \
-  "dist/MusicBar.dmg" \
-  "dist/dmg/"
+  "dist/Music Bar.dmg" \
+  "dist/Music Bar.app"
