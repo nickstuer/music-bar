@@ -17,7 +17,7 @@
     "**/.ruff_cache": true,
     "**/.venv": true,
     "**/htmlcov": true,
-    "**/mooch.egg-info": true
+    "**/*.egg-info": true
   },
   "python.testing.pytestArgs": [
     "tests"
