@@ -1,13 +1,13 @@
 [project]
 name = "music-bar"
-version = "0.0.9"
+version = "0.0.10"
 description = "Apple Music Status Bar for MacOS. Easily control Music from the Status Bar and automatically updates Discord status to show your friends what you're listening to."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "darkdetect>=0.8.0",
     "osascript>=2020.12.3",
-    "pypresence",
+    "pypresence>=4.6.1",
     "rumps>=0.4.0",
 ]
 # Development Status :: Common values are:
@@ -79,9 +79,6 @@ omit = [
     ".tox/*",
     "tests/*",
 ]
-
-[tool.uv.sources]
-pypresence = { git = "https://github.com/qwertyquerty/pypresence", rev = "4e882c36d0f800c016c15977243ac9a49177095a" }
 
 [dependency-groups]
 dev = [

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import darkdetect
 import rumps
-from pypresence import ActivityType, Presence
+from pypresence import ActivityType, Presence, StatusDisplayType
 from pypresence.exceptions import PipeClosed
 
 from .command import Command, run_script
@@ -22,7 +22,7 @@ formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-VERSION = "0.0.10"
+VERSION = "0.0.11"
 DISCORD_APP_ID = "1326038870323892244"
 APPLICATION_ICON = "assets/apple_music_white.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
@@ -263,6 +263,7 @@ class MusicBar(rumps.App):
 
                 self.RPC.update(
                     activity_type=ActivityType.LISTENING,
+                    status_display_type=StatusDisplayType.DETAILS,
                     details=f"{song}",
                     state=f"{artist}",
                     large_image=DISCORD_ICON,
