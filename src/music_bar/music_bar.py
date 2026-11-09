@@ -9,6 +9,8 @@ from pypresence import ActivityType, Presence, StatusDisplayType
 from pypresence.exceptions import PipeClosed
 
 from .command import Command, run_script
+from .player import PlaybackClock, PlayerInfoObserver, is_music_running
+from .throttle import LatestValueSender
 from .volume import VolumeHeaderMenuItem, VolumeSliderMenuItem
 
 logger = logging.getLogger(__name__)
@@ -29,6 +31,13 @@ APPLICATION_ICON = "assets/apple_music_white.svg"
 DISCORD_ICON = "https://marketing.services.apple/api/storage/images/640a25ea26ab1a0007c2b3fd/en-us-large@2x.png"
 
 ABOUT_TEXT = f"Author: Nick Stuer\nVersion: {VERSION}\n\n\nIcons from ReShot.com"
+
+# Seconds between position/volume resyncs with Music while playing. Track changes and play/pause arrive instantly
+# via notifications; this only corrects drift from seeking inside a track or changing volume in Music itself.
+RESYNC_INTERVAL = 10
+# Don't overwrite the slider from Music while the user has dragged it within this many seconds.
+VOLUME_SETTLE_SECONDS = 2
+VOLUME_MIN_INTERVAL = 0.1
 
 
 class MusicBar(rumps.App):
@@ -88,8 +97,16 @@ class MusicBar(rumps.App):
         volume = run_script(Command.Get_Volume, converter=int)
         self.menu_volume_header = VolumeHeaderMenuItem("Music App Volume", value=volume)
         self.menu_volume = VolumeSliderMenuItem(value=volume, callback=self.set_volume, header=self.menu_volume_header)
+        self.volume_sender = LatestValueSender(
+            lambda value: run_script(Command.Set_Volume, round(value)),
+            min_interval=VOLUME_MIN_INTERVAL,
+        )
         self.last_song = None
+        self.current_title = None
         self.playing = False
+        self.clock = PlaybackClock()
+        self.player_observer = PlayerInfoObserver.alloc().initWithCallback_(self.on_player_info)
+        self.player_observer.start()
         try:
             self.RPC = Presence(DISCORD_APP_ID, pipe=0)
             self.RPC.connect()
@@ -124,7 +141,7 @@ class MusicBar(rumps.App):
         )
 
     def set_volume(self, sender) -> None:  # noqa: ANN001
-        run_script(Command.Set_Volume, sender.value)
+        self.volume_sender.submit(sender.value)
 
     def play(self, _) -> None:  # noqa: ANN001
         run_script(Command.Play)
@@ -139,8 +156,12 @@ class MusicBar(rumps.App):
         run_script(Command.Previous)
 
     def restart(self, _) -> None:  # noqa: ANN001
-        self.last_song = None
         run_script(Command.Restart)
+        # Seeking doesn't post a notification, so reset the clock and Discord timestamps ourselves.
+        self.clock.sync(0, running=self.playing)
+        if self.playing:
+            self.update_discord_status()
+            self.refresh_now_playing()
 
     def start_playlist(self, sender) -> None:  # noqa: ANN001
         run_script(Command.Play_Playlist_From_Name, sender.title.strip())
@@ -189,54 +210,84 @@ class MusicBar(rumps.App):
         logger.info("Loaded Playlists:" + str(len(self.menu_playlists)))  # noqa: G003
 
     @rumps.timer(1)
-    def update(self, _) -> None:  # noqa: ANN001, C901
-        if not run_script(Command.Is_Open):
+    def update(self, _) -> None:  # noqa: ANN001
+        """Advance the elapsed-time display. Runs no AppleScript except an occasional resync."""
+        if not is_music_running():
             # Don't interact with Music app if it's not open
-            if not self.last_discord_update_was_clear:
-                self.clear_discord_status()
+            if self.playing or not self.last_discord_update_was_clear:
+                self.set_stopped()
             return
 
         if not self.started:
             # Load Playlists after the app is started because it might take some time and block the icon from showing
             self.load_playlists()
+            # Music may already be playing; notifications only arrive on the next change.
+            self.sync_from_music()
             self.started = True
+            return
 
-        self.playing = run_script(Command.Get_Player_State) == "playing"
+        if not self.playing:
+            return
 
-        if self.playing:
-            volume = run_script(Command.Get_Volume, converter=int)
-            self.menu_volume.value = volume
+        if self.clock.seconds_since_sync() >= RESYNC_INTERVAL:
+            self.clock.sync(run_script(Command.Get_Player_Position, converter=float), running=True)
+            if self.volume_sender.seconds_since_submit() >= VOLUME_SETTLE_SECONDS:
+                self.menu_volume.value = run_script(Command.Get_Volume, converter=int)
 
-            current_song = run_script(Command.Get_Current_Song_Title)
-            if self.last_song != current_song:
-                self.last_song = current_song
-                logger.info(f"Current song changed: {current_song}")
-                self.update_discord_status()
+        self.refresh_now_playing()
 
-            pos = run_script(Command.Get_Player_Position)
-            pos = time.strftime("%M:%S", time.gmtime(float(pos)))
-            title = run_script(Command.Get_Current_Song_Title)
-
-            title_short = title if len(title) <= 40 else title[: 40 - 1] + "…"  # noqa: PLR2004
-            self.menu_current.title = f"{title_short} • {pos}"
-
-            if self.menu_pause.hidden:
-                self.menu_pause.show()
-
-            if not self.menu_play.hidden:
-                self.menu_play.hide()
-
+    def on_player_info(self, info: dict) -> None:
+        """Handle Music's playerInfo notification (play, pause, stop, track change)."""
+        state = str(info.get("Player State", ""))
+        logger.debug(f"playerInfo notification: state={state} name={info.get('Name')}")
+        if state == "Playing":
+            title = str(info.get("Name") or run_script(Command.Get_Current_Song_Title))
+            self.set_playing(title)
         else:
-            if self.menu_play.hidden:
-                self.menu_play.show()
+            self.set_stopped()
 
-            if not self.menu_pause.hidden:
-                self.menu_pause.hide()
+    def sync_from_music(self) -> None:
+        if run_script(Command.Get_Player_State) == "playing":
+            self.set_playing(run_script(Command.Get_Current_Song_Title))
+        else:
+            self.set_stopped()
 
-            if not self.last_discord_update_was_clear:
-                self.clear_discord_status()
-            self.last_song = None
-            self.menu_current.title = "Not Playing"
+    def set_playing(self, title: str) -> None:
+        self.playing = True
+        self.current_title = title
+        self.clock.sync(run_script(Command.Get_Player_Position, converter=float), running=True)
+
+        if self.last_song != title:
+            self.last_song = title
+            logger.info(f"Current song changed: {title}")
+            self.update_discord_status()
+
+        if self.menu_pause.hidden:
+            self.menu_pause.show()
+        if not self.menu_play.hidden:
+            self.menu_play.hide()
+
+        self.refresh_now_playing()
+
+    def set_stopped(self) -> None:
+        self.playing = False
+        self.clock.sync(self.clock.position(), running=False)
+        self.last_song = None
+
+        if self.menu_play.hidden:
+            self.menu_play.show()
+        if not self.menu_pause.hidden:
+            self.menu_pause.hide()
+
+        if not self.last_discord_update_was_clear:
+            self.clear_discord_status()
+        self.menu_current.title = "Not Playing"
+
+    def refresh_now_playing(self) -> None:
+        pos = time.strftime("%M:%S", time.gmtime(self.clock.position()))
+        title = self.current_title or ""
+        title_short = title if len(title) <= 40 else title[: 40 - 1] + "…"  # noqa: PLR2004
+        self.menu_current.title = f"{title_short} • {pos}"
 
     def clear_discord_status(self) -> None:
         logger.info("Clearing Discord status")
