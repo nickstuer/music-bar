@@ -23,6 +23,7 @@ class LatestValueSender[T]:
         self._min_interval = min_interval
         self._pending: object = _UNSET
         self._last_submit = 0.0
+        self._stopped = False
         self._condition = threading.Condition()
         self._thread = threading.Thread(target=self._run, name="LatestValueSender", daemon=True)
         self._thread.start()
@@ -33,6 +34,13 @@ class LatestValueSender[T]:
             self._last_submit = time.monotonic()
             self._condition.notify()
 
+    def stop(self) -> None:
+        """Stop the background thread. Any pending value is dropped."""
+        with self._condition:
+            self._stopped = True
+            self._pending = _UNSET
+            self._condition.notify()
+
     def seconds_since_submit(self) -> float:
         with self._condition:
             return time.monotonic() - self._last_submit
@@ -40,8 +48,10 @@ class LatestValueSender[T]:
     def _run(self) -> None:
         while True:
             with self._condition:
-                while self._pending is _UNSET:
+                while self._pending is _UNSET and not self._stopped:
                     self._condition.wait()
+                if self._stopped:
+                    return
                 value, self._pending = self._pending, _UNSET
 
             try:

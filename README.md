@@ -64,7 +64,6 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 - Python 3.13 or greater
 - rumps
 - pypresence 4.6.2 or greater (from PyPI)
-- darkdetect
 - pyinstaller
 
 #### 🔨 Build

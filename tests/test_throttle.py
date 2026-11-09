@@ -63,3 +63,10 @@ def test_send_errors_do_not_kill_worker():
     time.sleep(0.05)
     sender.submit(2)
     assert wait_for(lambda: sent == [2])
+
+
+def test_stop_ends_worker_thread():
+    sender = LatestValueSender(lambda _: None, min_interval=0.01)
+    sender.stop()
+    sender._thread.join(1)  # noqa: SLF001
+    assert not sender._thread.is_alive()  # noqa: SLF001

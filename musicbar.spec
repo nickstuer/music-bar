@@ -47,8 +47,8 @@ app = BUNDLE(
     icon='src/assets/music.icns',
     bundle_identifier=None,
     info_plist={
+        # Menu bar app: no Dock icon. Don't mark it background-only - that forbids activation, so dialogs can't take
+        # keyboard input.
         'LSUIElement': True,
-        'LSBackgroundOnly': True,
-        'NSUIElement': True
     },
 )
