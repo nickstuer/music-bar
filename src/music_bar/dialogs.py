@@ -21,7 +21,6 @@ from AppKit import (
     NSLineBreakByTruncatingTail,
     NSMakeRect,
     NSRunLoop,
-    NSRunLoopCommonModes,
     NSScrollView,
     NSSearchField,
     NSTableColumn,
@@ -34,6 +33,7 @@ from AppKit import (
 from Foundation import NSObject
 
 from .command import Track
+from .mainthread import call_on_main
 from .throttle import LatestValueSender
 
 logger = logging.getLogger(__name__)
@@ -102,24 +102,6 @@ def show_alert(title: str, message: str = "", icon_path: str | None = None) -> N
     """``rumps.alert`` that is guaranteed to appear in front."""
     activate_app()
     rumps.alert(title, message, icon_path=icon_path)
-
-
-class _MainThreadCall(NSObject):
-    """Runs a Python callable on the main thread."""
-
-    def run_(self, _) -> None:  # noqa: ANN001
-        self.fn()
-
-
-def call_on_main(fn: Callable[[], None]) -> None:
-    """Schedule ``fn`` on the main thread in all common run loop modes.
-
-    ``AppHelper.callAfter`` only fires in the default mode, so it would wait until a modal dialog closed; common modes
-    include the modal-panel mode, so results reach an open dialog immediately.
-    """
-    call = _MainThreadCall.alloc().init()
-    call.fn = fn
-    call.performSelectorOnMainThread_withObject_waitUntilDone_modes_("run:", None, False, [NSRunLoopCommonModes])  # noqa: FBT003
 
 
 def _selector_name(selector: object) -> str:

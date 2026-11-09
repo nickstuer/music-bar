@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from music_bar import music_bar as mb
+from music_bar.artwork import ArtworkLookup
 from music_bar.command import Command, Track
 
 SRC = Path(__file__).resolve().parent.parent / "src"
@@ -20,6 +21,8 @@ def app(monkeypatch):
         presence.return_value = MagicMock()
         instance = mb.MusicBar()
         instance.player_observer.stop()
+        instance.artwork = ArtworkLookup(fetch=lambda *_: [])
+        monkeypatch.setattr(instance, "refresh_menu_artwork", MagicMock())
         instance.run_script = run_script  # expose for assertions
         instance.presence = presence
         yield instance
@@ -246,3 +249,97 @@ def test_toggle_launch_at_login_error(app):
         app.toggle_launch_at_login(sender)
     alert.assert_called_once_with("Couldn't Change Launch at Login", "nope")
     assert not sender.state
+
+
+# --- Artwork -----------------------------------------------------------------------------------------------------
+
+COVER = "https://example.com/cover/512x512bb.jpg"
+
+
+def song_info(command, *_: object, **kw: object):
+    return {
+        Command.Get_Current_Song_Artist: "Artist",
+        Command.Get_Current_Song_Title: "Song",
+        Command.Get_Current_Song_Album: "Album",
+    }.get(command, kw.get("default", ""))
+
+
+def test_discord_uses_cached_artwork_immediately(app):
+    app.run_script.side_effect = song_info
+    app.artwork = MagicMock()
+    app.artwork.cached.return_value = (True, COVER)
+    app.RPC = MagicMock()
+    app.update_discord_status()
+    kwargs = app.RPC.update.call_args.kwargs
+    assert kwargs["large_image"] == COVER
+    assert kwargs["small_image"] == mb.DISCORD_ICON
+    assert kwargs["large_text"] == "Album"
+    app.artwork.lookup_async.assert_not_called()
+
+
+def test_discord_shows_logo_then_adds_artwork(app):
+    app.run_script.side_effect = song_info
+    app.artwork = MagicMock()
+    app.artwork.cached.return_value = (False, None)
+    app.RPC = MagicMock()
+    app.playing = True
+    with patch.object(mb, "call_on_main", side_effect=lambda fn: fn()):
+        app.update_discord_status()
+        first = app.RPC.update.call_args.kwargs
+        assert first["large_image"] == mb.DISCORD_ICON
+        assert "small_image" not in first
+
+        callback = app.artwork.lookup_async.call_args[0][3]
+        callback(COVER)  # lookup finished
+    second = app.RPC.update.call_args.kwargs
+    assert second["large_image"] == COVER
+    assert (second["start"], second["end"]) == (first["start"], first["end"])  # progress bar not shifted
+
+
+def test_late_artwork_ignored_after_song_change_or_clear(app):
+    app.RPC = MagicMock()
+    app.playing = True
+    activity = {"details": "Song", "state": "Artist", "start": 0, "end": 1}
+
+    stale = app.discord_generation
+    app.discord_generation += 1  # a newer update happened
+    app.apply_discord_artwork(stale, activity, COVER)
+    app.RPC.update.assert_not_called()
+
+    current = app.discord_generation
+    app.clear_discord_status()
+    app.apply_discord_artwork(current, activity, COVER)
+    app.RPC.update.assert_not_called()
+
+
+def test_short_album_omitted_for_discord(app):
+    app.run_script.side_effect = lambda c, *_, **kw: "A" if c == Command.Get_Current_Song_Album else song_info(c, **kw)
+    app.artwork = MagicMock()
+    app.artwork.cached.return_value = (True, None)
+    app.RPC = MagicMock()
+    app.update_discord_status()
+    assert app.RPC.update.call_args.kwargs["large_text"] is None
+
+
+def test_song_change_refreshes_menu_artwork(app):
+    app.run_script.side_effect = song_info
+    app.set_playing("Song")
+    app.refresh_menu_artwork.assert_called_once()
+    app.set_playing("Song")  # same song (e.g. resume) - no reload
+    app.refresh_menu_artwork.assert_called_once()
+
+
+def test_menu_artwork_applied_only_for_current_song(app):
+    image = MagicMock()
+    app.menu_current._menuitem = MagicMock()  # noqa: SLF001 - PyObjC methods can't be patched individually
+    set_image = app.menu_current._menuitem.setImage_  # noqa: SLF001
+    app.apply_menu_artwork(app.track_generation - 1, image)
+    set_image.assert_not_called()
+    app.apply_menu_artwork(app.track_generation, image)
+    set_image.assert_called_once_with(image)
+
+
+def test_stopping_clears_menu_artwork(app):
+    app.menu_current._menuitem = MagicMock()  # noqa: SLF001
+    app.set_stopped()
+    app.menu_current._menuitem.setImage_.assert_called_once_with(None)  # noqa: SLF001

@@ -19,3 +19,19 @@ def isolated_settings(tmp_path, monkeypatch):
     path = tmp_path / "settings.json"
     monkeypatch.setattr(settings, "SETTINGS_PATH", path)
     return path
+
+
+@pytest.fixture(autouse=True)
+def no_real_side_effects(monkeypatch):
+    """Fail loudly if a test would run real AppleScript against Music or make a real network request.
+
+    Tests that need these patch them explicitly (a per-test patch overrides this).
+    """
+    from music_bar import artwork, command  # noqa: PLC0415
+
+    def forbidden(*_: object, **__: object) -> None:
+        msg = "tests must not run real osascript or network requests"
+        raise AssertionError(msg)
+
+    monkeypatch.setattr(command, "osascript", forbidden)
+    monkeypatch.setattr(artwork.urllib.request, "urlopen", forbidden)

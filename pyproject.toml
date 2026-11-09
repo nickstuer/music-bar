@@ -29,6 +29,10 @@ testpaths = [
     "tests/",
 ]
 asyncio_mode = "auto"
+filterwarnings = [
+    # An exception in a background thread (e.g. artwork lookup) must fail the test, not just warn.
+    "error::pytest.PytestUnhandledThreadExceptionWarning",
+]
 addopts = "--cov=src/music_bar --cov-report=term-missing"
 
 [tool.ruff]

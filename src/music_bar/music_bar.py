@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from pathlib import Path
 
@@ -12,8 +13,10 @@ from AppKit import (
 from pypresence import ActivityType, Presence, StatusDisplayType
 
 from . import login_item
+from .artwork import ArtworkLookup, export_current_artwork, load_menu_image
 from .command import Command, applescript_string, get_playlist_names, run_script, search_library
 from .dialogs import MAX_RESULTS, search_dialog, show_alert
+from .mainthread import call_on_main
 from .player import PlaybackClock, PlayerInfoObserver, is_music_running
 from .settings import Settings
 from .throttle import LatestValueSender
@@ -52,6 +55,8 @@ ICON_SIZE = (18, 18)
 SEARCH_DIALOG_ICON = "assets/music.svg"
 MENU_TITLE_LENGTH = 40
 MENU_BAR_TITLE_LENGTH = 30
+MENU_ARTWORK_SIZE = 32
+DISCORD_TEXT_MIN_LENGTH = 2  # Discord rejects shorter strings
 
 
 def shorten(text: str, limit: int) -> str:
@@ -96,6 +101,11 @@ class MusicBar(rumps.App):
         self.current_title = None
         self.playing = False
         self.clock = PlaybackClock()
+        self.artwork = ArtworkLookup()
+        self.artwork_export_lock = threading.Lock()
+        # Bumped on every song change/stop and Discord update, so slow background results for an older song are dropped.
+        self.track_generation = 0
+        self.discord_generation = 0
         self.player_observer = PlayerInfoObserver.alloc().initWithCallback_(self.on_player_info)
         self.player_observer.start()
 
@@ -311,6 +321,8 @@ class MusicBar(rumps.App):
         if self.last_song != title:
             self.last_song = title
             logger.info(f"Current song changed: {title}")
+            self.track_generation += 1
+            self.refresh_menu_artwork()
             self.update_discord_status()
 
         if self.menu_pause.hidden:
@@ -325,6 +337,8 @@ class MusicBar(rumps.App):
         self.playing = False
         self.clock.sync(self.clock.position(), running=False)
         self.last_song = None
+        self.track_generation += 1
+        self.apply_menu_artwork(self.track_generation, None)
 
         if self.menu_play.hidden:
             self.menu_play.show()
@@ -335,6 +349,27 @@ class MusicBar(rumps.App):
             self.clear_discord_status()
         self.menu_current.title = "Not Playing"
         self.refresh_menu_bar_title()
+
+    def refresh_menu_artwork(self) -> None:
+        """Export the current track's cover from Music in the background and show it on the now-playing item."""
+        generation = self.track_generation
+
+        def export() -> None:
+            image = None
+            try:
+                with self.artwork_export_lock:  # one export at a time: they all write the same file
+                    path = export_current_artwork()
+                    image = load_menu_image(path, MENU_ARTWORK_SIZE) if path else None
+            except Exception:
+                logger.exception("Failed to load artwork for the menu")
+            call_on_main(lambda: self.apply_menu_artwork(generation, image))
+
+        threading.Thread(target=export, name="ArtworkExport", daemon=True).start()
+
+    def apply_menu_artwork(self, generation: int, image: object) -> None:
+        if generation != self.track_generation:
+            return  # The song changed again while this was loading.
+        self.menu_current._menuitem.setImage_(image)  # noqa: SLF001 - rumps has no API for an NSImage
 
     def refresh_now_playing(self) -> None:
         pos = time.strftime("%M:%S", time.gmtime(self.clock.position()))
@@ -365,6 +400,7 @@ class MusicBar(rumps.App):
     def clear_discord_status(self) -> None:
         logger.info("Clearing Discord status")
         self.last_discord_update_was_clear = True
+        self.discord_generation += 1  # Don't let a pending artwork lookup bring the status back.
         if self.RPC is None:
             return
         try:
@@ -378,15 +414,53 @@ class MusicBar(rumps.App):
         if not self.settings.show_discord_status:
             return
         self.last_discord_update_was_clear = False
+        self.discord_generation += 1
+        generation = self.discord_generation
 
         artist = run_script(Command.Get_Current_Song_Artist)
         song = run_script(Command.Get_Current_Song_Title)
+        album = run_script(Command.Get_Current_Song_Album)
         position = run_script(Command.Get_Player_Position, converter=float, default=0.0)
         start = run_script(Command.Get_Current_Song_Start, converter=float, default=0.0)
         finish = run_script(Command.Get_Current_Song_Finish, converter=float, default=0.0)
         duration = finish - start
         logger.info(f"Updating Discord status: {song} by {artist}, position: {position}, duration: {duration}")
 
+        now = time.time()
+        activity = {
+            "details": f"{song}",
+            "state": f"{artist}",
+            "large_text": album if len(album) >= DISCORD_TEXT_MIN_LENGTH else None,
+            # Absolute timestamps, so a later artwork update doesn't shift the progress bar.
+            "start": now - int(position),
+            "end": now + int(duration) - int(position),
+        }
+
+        known, artwork_url = self.artwork.cached(artist, song, album)
+        self.send_discord_activity(activity, artwork_url)
+        if not known:
+            # Show the status right away with the Apple Music logo, then add the cover once it's found.
+            self.artwork.lookup_async(
+                artist,
+                song,
+                album,
+                lambda url: call_on_main(lambda: self.apply_discord_artwork(generation, activity, url)),
+            )
+
+    def apply_discord_artwork(self, generation: int, activity: dict, artwork_url: str | None) -> None:
+        if artwork_url is None or generation != self.discord_generation:
+            return  # Nothing found, or the song changed / status was cleared since the lookup started.
+        if not (self.playing and self.settings.show_discord_status):
+            return
+        self.send_discord_activity(activity, artwork_url)
+
+    def send_discord_activity(self, activity: dict, artwork_url: str | None) -> None:
+        # With a cover, the Apple Music logo moves to the small corner badge.
+        images = (
+            {"large_image": artwork_url, "small_image": DISCORD_ICON, "small_text": "Listening to Apple Music"}
+            if artwork_url
+            else {"large_image": DISCORD_ICON}
+        )
         for attempt in range(1, DISCORD_ATTEMPTS + 1):
             if self.RPC is None and not self.connect_discord():
                 logger.info("Discord is not running; skipping status update")
@@ -395,16 +469,12 @@ class MusicBar(rumps.App):
                 self.RPC.update(
                     activity_type=ActivityType.LISTENING,
                     status_display_type=StatusDisplayType.DETAILS,
-                    details=f"{song}",
-                    state=f"{artist}",
-                    large_image=DISCORD_ICON,
-                    start=time.time() - int(position),
-                    end=time.time() + int(duration) - int(position),
-                    small_text="Listening to Apple Music",
+                    **activity,
+                    **images,
                 )
             except Exception as e:  # noqa: BLE001
                 logger.info(f"Discord update attempt {attempt} of {DISCORD_ATTEMPTS} failed: {e!r}")
                 self.RPC = None  # Force a fresh connection on the next attempt.
             else:
-                logger.info("Updated Discord status!")
+                logger.info(f"Updated Discord status ({'with' if artwork_url else 'without'} artwork)")
                 return
