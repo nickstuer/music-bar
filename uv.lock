@@ -122,6 +122,7 @@ version = "0.0.12"
 source = { virtual = "." }
 dependencies = [
     { name = "pyobjc-framework-cocoa" },
+    { name = "pyobjc-framework-servicemanagement" },
     { name = "pypresence" },
     { name = "rumps" },
 ]
@@ -135,6 +136,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pyobjc-framework-cocoa", specifier = ">=13.0" },
+    { name = "pyobjc-framework-servicemanagement", specifier = ">=13.0" },
     { name = "pypresence", specifier = ">=4.6.2" },
     { name = "rumps", specifier = ">=0.4.0" },
 ]
@@ -201,6 +203,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/3e/1b24b56d3710a594dc2350ed6b321aaf0ee12fca3dafa6034bccffc8ac08/pyobjc_framework_cocoa-13.0-cp314-cp314t-macosx_10_15_universal2.whl", hash = "sha256:1a6b9f9e0ab123e51fa7df43bbc6c0414a444facd2225ad4f221a0d842c49ad6", size = 395844, upload-time = "2026-10-30T10:35:21.319Z" },
     { url = "https://files.pythonhosted.org/packages/f2/e0/b2f89d9c92e2b6513d8495d81c3a7d6042f936f51ed7dd2180615a01c980/pyobjc_framework_cocoa-13.0-cp315-cp315-macosx_10_15_universal2.whl", hash = "sha256:9282ebad57784ec18f4b7ea2e6b65bac0a6f56cc21a5c63e061fa48a9b49dd26", size = 392140, upload-time = "2026-10-30T10:35:22.562Z" },
     { url = "https://files.pythonhosted.org/packages/2c/ac/d2c8fa5d96ddf4e70ac5ddb23f24ac7861577728df342697125c1b42e159/pyobjc_framework_cocoa-13.0-cp315-cp315t-macosx_10_15_universal2.whl", hash = "sha256:f1e26ad2225d1c84973cce725f2f4aeeb4d5f653a36c8a9f0b691c5529dc7780", size = 396079, upload-time = "2026-10-30T10:35:23.821Z" },
+]
+
+[[package]]
+name = "pyobjc-framework-servicemanagement"
+version = "13.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyobjc-core" },
+    { name = "pyobjc-framework-cocoa" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/03/9b/b6d085589026f017a7eb8b847810fb1c2da1304df07532702a4529af720f/pyobjc_framework_servicemanagement-13.0.tar.gz", hash = "sha256:d3769c181f5f94a2e279498e972862ba8f9a5e094c6027e99745dc2d20bde351", size = 15150, upload-time = "2026-10-30T10:47:37.552Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/0c/8c0cf6f9b0ce4c8f7e9597e1d0356c216f8c91c94890e59b0c64cec2ce04/pyobjc_framework_servicemanagement-13.0-py2.py3-none-any.whl", hash = "sha256:ac8099246c1252a8b0f15e110e1ca782d275b608729883f8f81f622895d45065", size = 5397, upload-time = "2026-10-30T10:43:52.393Z" },
 ]
 
 [[package]]

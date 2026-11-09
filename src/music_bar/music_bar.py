@@ -11,9 +11,11 @@ from AppKit import (
 )
 from pypresence import ActivityType, Presence, StatusDisplayType
 
+from . import login_item
 from .command import Command, applescript_string, get_playlist_names, run_script, search_library
 from .dialogs import MAX_RESULTS, search_dialog, show_alert
 from .player import PlaybackClock, PlayerInfoObserver, is_music_running
+from .settings import Settings
 from .throttle import LatestValueSender
 from .volume import VolumeHeaderMenuItem, VolumeSliderMenuItem
 
@@ -48,6 +50,12 @@ VOLUME_MIN_INTERVAL = 0.1
 DISCORD_ATTEMPTS = 3
 ICON_SIZE = (18, 18)
 SEARCH_DIALOG_ICON = "assets/music.svg"
+MENU_TITLE_LENGTH = 40
+MENU_BAR_TITLE_LENGTH = 30
+
+
+def shorten(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def is_dark_mode() -> bool:
@@ -91,8 +99,12 @@ class MusicBar(rumps.App):
         self.player_observer = PlayerInfoObserver.alloc().initWithCallback_(self.on_player_info)
         self.player_observer.start()
 
+        self.settings = Settings.load()
+        self.menu_settings = self._build_settings_menu()
+
         self.RPC: Presence | None = None
-        self.connect_discord()
+        if self.settings.show_discord_status:
+            self.connect_discord()
 
         self.started = False
         self.last_discord_update_was_clear = False
@@ -114,9 +126,69 @@ class MusicBar(rumps.App):
                 self.menu_playlist,
                 self.menu_search,
                 None,
+                self.menu_settings,
             ],
             icon=APPLICATION_ICON,
         )
+
+    def _build_settings_menu(self) -> rumps.MenuItem:
+        menu = rumps.MenuItem("Settings")
+
+        self.menu_show_discord = rumps.MenuItem("Show Discord Status", callback=self.toggle_discord_status)
+        self.menu_show_discord.state = self.settings.show_discord_status
+        menu.add(self.menu_show_discord)
+
+        self.menu_show_in_bar = rumps.MenuItem("Show Song in Menu Bar", callback=self.toggle_song_in_menu_bar)
+        self.menu_show_in_bar.state = self.settings.show_song_in_menu_bar
+        menu.add(self.menu_show_in_bar)
+
+        if login_item.is_supported():
+            self.menu_launch_at_login = rumps.MenuItem("Launch at Login", callback=self.toggle_launch_at_login)
+            self.menu_launch_at_login.state = login_item.is_enabled() or login_item.needs_approval()
+        else:
+            # Registering a login item needs the app bundle; from source it would register the Python interpreter.
+            self.menu_launch_at_login = rumps.MenuItem("Launch at Login (built app only)")
+        menu.add(self.menu_launch_at_login)
+        return menu
+
+    def toggle_discord_status(self, sender) -> None:  # noqa: ANN001
+        enabled = not sender.state
+        sender.state = enabled
+        self.settings.show_discord_status = enabled
+        self.settings.save()
+        logger.info(f"Show Discord status: {enabled}")
+        if enabled:
+            if self.playing:
+                self.update_discord_status()
+        else:
+            self.clear_discord_status()
+            self.disconnect_discord()
+
+    def toggle_song_in_menu_bar(self, sender) -> None:  # noqa: ANN001
+        enabled = not sender.state
+        sender.state = enabled
+        self.settings.show_song_in_menu_bar = enabled
+        self.settings.save()
+        self.refresh_menu_bar_title()
+
+    def toggle_launch_at_login(self, sender) -> None:  # noqa: ANN001
+        error = login_item.set_enabled(not sender.state)
+        if error:
+            show_alert("Couldn't Change Launch at Login", error)
+        elif login_item.needs_approval():
+            show_alert(
+                "Approval Needed",
+                "Allow Music Bar under System Settings > General > Login Items to finish turning this on.",
+            )
+            login_item.open_login_items_settings()
+        sender.state = login_item.is_enabled() or login_item.needs_approval()
+
+    def refresh_menu_bar_title(self) -> None:
+        """Show the current song next to the menu bar icon, if enabled and something is playing."""
+        if self.settings.show_song_in_menu_bar and self.playing and self.current_title:
+            self.title = shorten(self.current_title, MENU_BAR_TITLE_LENGTH)
+        else:
+            self.title = None
 
     def _icon_item(self, title: str, icon: str, callback) -> rumps.MenuItem:  # noqa: ANN001
         item = rumps.MenuItem(title, icon=icon, dimensions=ICON_SIZE, callback=callback, template=self.dark_mode)
@@ -247,6 +319,7 @@ class MusicBar(rumps.App):
             self.menu_play.hide()
 
         self.refresh_now_playing()
+        self.refresh_menu_bar_title()
 
     def set_stopped(self) -> None:
         self.playing = False
@@ -261,12 +334,11 @@ class MusicBar(rumps.App):
         if not self.last_discord_update_was_clear:
             self.clear_discord_status()
         self.menu_current.title = "Not Playing"
+        self.refresh_menu_bar_title()
 
     def refresh_now_playing(self) -> None:
         pos = time.strftime("%M:%S", time.gmtime(self.clock.position()))
-        title = self.current_title or ""
-        title_short = title if len(title) <= 40 else title[: 40 - 1] + "…"  # noqa: PLR2004
-        self.menu_current.title = f"{title_short} • {pos}"
+        self.menu_current.title = f"{shorten(self.current_title or '', MENU_TITLE_LENGTH)} • {pos}"
 
     def connect_discord(self) -> bool:
         """(Re)connect to Discord. Never raises; returns whether a connection is available."""
@@ -281,6 +353,15 @@ class MusicBar(rumps.App):
         logger.info("Connected to Discord RPC")
         return True
 
+    def disconnect_discord(self) -> None:
+        if self.RPC is None:
+            return
+        try:
+            self.RPC.close()
+        except Exception as e:  # noqa: BLE001
+            logger.info(f"Error closing Discord connection: {e!r}")
+        self.RPC = None
+
     def clear_discord_status(self) -> None:
         logger.info("Clearing Discord status")
         self.last_discord_update_was_clear = True
@@ -294,6 +375,8 @@ class MusicBar(rumps.App):
             self.RPC = None
 
     def update_discord_status(self) -> None:
+        if not self.settings.show_discord_status:
+            return
         self.last_discord_update_was_clear = False
 
         artist = run_script(Command.Get_Current_Song_Artist)

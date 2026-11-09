@@ -136,3 +136,113 @@ def test_bundle_is_not_background_only():
     spec = (SRC.parent / "musicbar.spec").read_text()
     assert "'LSUIElement': True" in spec
     assert "LSBackgroundOnly" not in spec
+    assert "bundle_identifier='com.nickstuer.musicbar'" in spec
+
+
+# --- Settings menu -----------------------------------------------------------------------------------------------
+
+
+def test_settings_menu_items(app):
+    assert list(app.menu_settings.keys()) == [
+        "Show Discord Status",
+        "Show Song in Menu Bar",
+        "Launch at Login (built app only)",
+    ]
+    assert app.menu_show_discord.state
+    assert not app.menu_show_in_bar.state
+
+
+def test_disable_discord_clears_and_disconnects(app, isolated_settings):
+    rpc = MagicMock()
+    app.RPC = rpc
+    app.toggle_discord_status(app.menu_show_discord)
+    assert not app.menu_show_discord.state
+    rpc.clear.assert_called_once()
+    rpc.close.assert_called_once()
+    assert app.RPC is None
+    assert '"show_discord_status": false' in isolated_settings.read_text()
+
+
+def test_disabled_discord_never_updates_or_connects(app):
+    app.settings.show_discord_status = False
+    app.RPC = None
+    app.presence.reset_mock()
+    app.update_discord_status()
+    app.presence.assert_not_called()
+    app.run_script.assert_not_called()
+
+
+def test_reenable_discord_updates_when_playing(app):
+    app.settings.show_discord_status = False
+    app.menu_show_discord.state = False
+    app.playing = True
+    with patch.object(app, "update_discord_status") as update:
+        app.toggle_discord_status(app.menu_show_discord)
+    update.assert_called_once()
+
+
+def test_disabled_discord_skips_connect_on_startup(monkeypatch):
+    monkeypatch.chdir(SRC)
+    mb.Settings(show_discord_status=False).save()
+    with patch.object(mb, "Presence") as presence, patch.object(mb, "run_script"):
+        instance = mb.MusicBar()
+        instance.player_observer.stop()
+    presence.assert_not_called()
+
+
+def test_song_in_menu_bar(app, isolated_settings):
+    app.playing, app.current_title = True, "A Very Long Song Title That Keeps Going On"
+    app.refresh_menu_bar_title()
+    assert app.title is None  # off by default
+
+    app.toggle_song_in_menu_bar(app.menu_show_in_bar)
+    assert app.title == mb.shorten(app.current_title, mb.MENU_BAR_TITLE_LENGTH)
+    assert len(app.title) == mb.MENU_BAR_TITLE_LENGTH
+    assert '"show_song_in_menu_bar": true' in isolated_settings.read_text()
+
+    app.set_stopped()
+    assert app.title is None
+
+
+def test_launch_at_login_menu_when_built(monkeypatch):
+    monkeypatch.chdir(SRC)
+    with (
+        patch.object(mb, "Presence"),
+        patch.object(mb, "run_script"),
+        patch.object(mb.login_item, "is_supported", return_value=True),
+        patch.object(mb.login_item, "is_enabled", return_value=False),
+        patch.object(mb.login_item, "needs_approval", return_value=False),
+    ):
+        instance = mb.MusicBar()
+        instance.player_observer.stop()
+    assert instance.menu_launch_at_login.title == "Launch at Login"
+    assert instance.menu_launch_at_login.callback == instance.toggle_launch_at_login
+
+
+def test_toggle_launch_at_login_needing_approval(app):
+    sender = MagicMock(state=False)
+    with (
+        patch.object(mb.login_item, "set_enabled", return_value=None) as set_enabled,
+        patch.object(mb.login_item, "needs_approval", return_value=True),
+        patch.object(mb.login_item, "is_enabled", return_value=False),
+        patch.object(mb.login_item, "open_login_items_settings") as open_settings,
+        patch.object(mb, "show_alert") as alert,
+    ):
+        app.toggle_launch_at_login(sender)
+    set_enabled.assert_called_once_with(True)  # noqa: FBT003
+    alert.assert_called_once()
+    open_settings.assert_called_once()
+    assert sender.state
+
+
+def test_toggle_launch_at_login_error(app):
+    sender = MagicMock(state=False)
+    with (
+        patch.object(mb.login_item, "set_enabled", return_value="nope"),
+        patch.object(mb.login_item, "needs_approval", return_value=False),
+        patch.object(mb.login_item, "is_enabled", return_value=False),
+        patch.object(mb, "show_alert") as alert,
+    ):
+        app.toggle_launch_at_login(sender)
+    alert.assert_called_once_with("Couldn't Change Launch at Login", "nope")
+    assert not sender.state

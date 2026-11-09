@@ -45,7 +45,7 @@ app = BUNDLE(
     exe,
     name='Music Bar.app',
     icon='src/assets/music.icns',
-    bundle_identifier=None,
+    bundle_identifier='com.nickstuer.musicbar',  # macOS tracks the login item by this ID
     info_plist={
         # Menu bar app: no Dock icon. Don't mark it background-only - that forbids activation, so dialogs can't take
         # keyboard input.
