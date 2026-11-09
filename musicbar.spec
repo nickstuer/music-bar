@@ -1,5 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
+import tomllib
 
+# Single source of truth for the bundle version shown in Finder's Get Info.
+with open('pyproject.toml', 'rb') as f:
+    VERSION = tomllib.load(f)['project']['version']
 
 a = Analysis(
     ['src/run.py'],
@@ -7,7 +11,7 @@ a = Analysis(
     '.venv/lib/python3.13/site-packages'],
     binaries=[],
     datas=[('src/assets/*.svg', 'assets')],
-    hiddenimports=[''],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -46,6 +50,7 @@ app = BUNDLE(
     name='Music Bar.app',
     icon='src/assets/music.icns',
     bundle_identifier='com.nickstuer.musicbar',  # macOS tracks the login item by this ID
+    version=VERSION,
     info_plist={
         # Menu bar app: no Dock icon. Don't mark it background-only - that forbids activation, so dialogs can't take
         # keyboard input.
