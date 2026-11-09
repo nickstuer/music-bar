@@ -1,10 +1,15 @@
+import subprocess
 from collections.abc import Callable
 from enum import Enum
 from typing import TypeVar
 
-from osascript import osascript
-
 T = TypeVar("T")
+
+
+def osascript(script: str) -> tuple[int, str, str]:
+    """Run an AppleScript and return (returncode, stdout, stderr) with output stripped."""
+    proc = subprocess.run(["/usr/bin/osascript", "-e", script], capture_output=True, text=True, check=False)  # noqa: S603
+    return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
 
 
 class Command(Enum):

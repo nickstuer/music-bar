@@ -61,10 +61,9 @@ Helpful notes on how to set up a virtual enviroment for developing python applic
 #### 📌 Dependencies
 
 - macOS 10.6 or greater
-- Python 3.10 or greater
+- Python 3.13 or greater
 - rumps
-- pypresence 4.4-ish: https://github.com/qwertyquerty/pypresence/archive/master.zip (not the 'stable' build on PyPi, it's outdated)
-- osascript
+- pypresence 4.6.2 or greater (from PyPI)
 - darkdetect
 - pyinstaller
 
