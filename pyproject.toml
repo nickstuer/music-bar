@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "darkdetect>=0.8.0",
+    "pyobjc-framework-cocoa>=13.0",
     "pypresence>=4.6.2",
     "rumps>=0.4.0",
 ]

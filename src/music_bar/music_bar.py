@@ -9,6 +9,7 @@ from pypresence import ActivityType, Presence, StatusDisplayType
 from pypresence.exceptions import PipeClosed
 
 from .command import Command, run_script
+from .volume import VolumeHeaderMenuItem, VolumeSliderMenuItem
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -85,7 +86,8 @@ class MusicBar(rumps.App):
         )
 
         volume = run_script(Command.Get_Volume, converter=int)
-        self.menu_volume = rumps.SliderMenuItem(dimensions=(150, 25), value=volume, callback=self.set_volume)
+        self.menu_volume_header = VolumeHeaderMenuItem("Music App Volume", value=volume)
+        self.menu_volume = VolumeSliderMenuItem(value=volume, callback=self.set_volume, header=self.menu_volume_header)
         self.last_song = None
         self.playing = False
         try:
@@ -111,9 +113,7 @@ class MusicBar(rumps.App):
                 self.menu_previous,
                 self.menu_restart,
                 None,
-                rumps.MenuItem(
-                    "Music App Volume",
-                ),
+                self.menu_volume_header,
                 self.menu_volume,
                 None,
                 (self.menu_playlist, self.menu_playlists),
